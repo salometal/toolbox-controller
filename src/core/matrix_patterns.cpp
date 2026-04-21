@@ -194,3 +194,33 @@ void mp_no_connection() {
     if (on) draw_pattern(FONT_A, CRGB(200, 0, 0));
     else { matrix_clear(); matrix_show(); }
 }
+void mp_snap_index(uint8_t idx) {
+    static uint8_t lastIdx = 255;
+    static bool showingTens = true;
+    static uint32_t lastSwitch = 0;
+
+    uint8_t tens  = idx / 10;
+    uint8_t units = idx % 10;
+    bool hasTens  = (tens > 0);
+
+    // Reset se cambia snap
+    if (idx != lastIdx) {
+        lastIdx      = idx;
+        showingTens  = hasTens;
+        lastSwitch   = millis();
+    }
+
+    // Alterna decine/unità ogni 1500ms
+    if (hasTens && millis() - lastSwitch > 1500) {
+        showingTens = !showingTens;
+        lastSwitch  = millis();
+    }
+
+    if (!hasTens || !showingTens) {
+        // Mostra unità — giallo
+        mp_digit(units, CRGB(200, 200, 0));
+    } else {
+        // Mostra decine — arancio
+        mp_digit(tens, CRGB(200, 100, 0));
+    }
+}

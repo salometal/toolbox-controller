@@ -47,6 +47,7 @@ struct AtomConfig {
 
     // Cue list attiva
     uint8_t activeListIndex;
+    float snapFade;   // fade per snap recall in secondi
 };
 
 extern AtomConfig settings;

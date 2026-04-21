@@ -163,6 +163,7 @@ void setupWebServer() {
         doc["masterName"] = settings.masterName;
         doc["brightness"] = settings.brightness;
         doc["hostname"]   = settings.hostname;
+        doc["snapFade"] = settings.snapFade;
 
         JsonObject tally = doc.createNestedObject("tallyConfig");
         JsonArray params = tally.createNestedArray("params");
@@ -210,6 +211,8 @@ void setupWebServer() {
                             v.as<const char*>(), 16);
                 }
             }
+            if (doc.containsKey("snapFade"))
+    settings.snapFade = doc["snapFade"] | 0.0f;
 
             saveConfiguration();
             request->send(200, "application/json", "{\"ok\":true}");

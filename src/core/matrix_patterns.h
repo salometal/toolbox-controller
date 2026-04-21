@@ -24,5 +24,6 @@ void mp_letter_D(CRGB color);
 void mp_letter_A(CRGB color);
 void mp_letter_K(CRGB color);
 void mp_no_connection();
+void mp_snap_index(uint8_t idx);  // 0-49
 
 #endif

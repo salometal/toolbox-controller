@@ -7,6 +7,8 @@
 
 extern AtomConfig settings;
 extern ToolboxStatus toolboxStatus;
+// Forward declarations
+void load_snap_list();
 
 AppState appState  = APP_NORMAL;
 uint8_t pendingMode = 0;
@@ -15,6 +17,14 @@ uint8_t pendingMode = 0;
 static uint32_t lastPoll     = 0;
 static uint32_t lastTallyIdx = 0;
 static uint8_t  tallyIdx     = 0;
+// Snap Recall state
+static int8_t  snapCurrentIdx = 0;
+static uint8_t snapIds[50];
+static char    snapNames[50][32];
+static uint8_t snapCount = 0;
+static bool    snapLoaded = false;
+
+
 
 // ==========================================================
 // PATTERN LED MODALITÀ
@@ -161,26 +171,35 @@ void action_tally_short() {
 
 // --- SNAP RECALL ---
 void action_snap_short() {
-    // Avanza allo snap successivo
-    // La lista snap viene dalla UI — qui gestiamo solo l'indice
-    // La logica completa è nel cuelist_engine per i recall
+    if (!snapLoaded) {
+        load_snap_list();
+        return;
+    }
+    if (snapCount == 0) return;
+    snapCurrentIdx = (snapCurrentIdx + 1) % snapCount;
+    Serial.printf("[SNAP] Snap %d: %s\n", snapIds[snapCurrentIdx], snapNames[snapCurrentIdx]);
 }
 
 void action_snap_long() {
-    // Recall snap corrente sul Toolbox
     if (!toolboxReachable()) return;
+    if (snapCount == 0) { load_snap_list(); return; }
 
     HTTPClient http;
     String url = "http://" + String(settings.masterHost) +
-                 "/api/snap/recall?id=" + String(settings.activeListIndex) +
-                 "&fade=0";
+                "/api/snap/recall?id=" + String(snapIds[snapCurrentIdx]) +
+                "&fade=" + String(settings.snapFade, 1);
     http.begin(url);
     http.setTimeout(2000);
-    http.GET();
+    int code = http.GET();
     http.end();
 
-    matrix_blink(CRGB(200, 100, 0), 2, 150);
-    matrix_show_mode(settings.mode);
+    Serial.printf("[SNAP] Recall snap %d code %d\n", snapIds[snapCurrentIdx], code);
+
+    if (code == 200) {
+        matrix_blink(CRGB(200, 100, 0), 2, 150);
+    } else {
+        matrix_blink(CRGB(200, 0, 0), 2, 150);
+    }
 }
 
 // --- SCENE OVERRIDE ---
@@ -279,6 +298,12 @@ void menu_confirm() {
     saveConfiguration();
     matrix_blink(modeColor(settings.mode), 2, 200);
     matrix_show_mode(settings.mode);
+
+    // Carica snap list se si entra in modalità SNAP
+    if (settings.mode == MODE_SNAP) {
+        snapLoaded = false;
+        load_snap_list();
+    }
     Serial.printf("[MODE] Modalità confermata: %d\n", settings.mode);
 }
 
@@ -318,7 +343,16 @@ void mode_do_long() {
 }
 
 void mode_do_vlong() {
-    // Entra nel menu selezione modalità
+    // Se si era in SNAP → release immediato al momento del menu
+    if (settings.mode == MODE_SNAP && toolboxReachable() && WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin("http://" + String(settings.masterHost) + "/api/snap/release");
+        http.setTimeout(2000);
+        http.GET();
+        http.end();
+        Serial.println("[SNAP] Release automatico all'apertura menu");
+    }
+
     appState    = APP_MODE_SELECT;
     pendingMode = settings.mode > 0 ? settings.mode : 1;
     matrix_show_menu(pendingMode);
@@ -405,8 +439,14 @@ void mode_loop() {
     if (appState == APP_NORMAL) {
         if (settings.mode == MODE_TALLY) {
             tally_display_update();
+        } else if (settings.mode == MODE_SNAP) {
+            // Mostra snap corrente sulla matrice
+            static uint32_t lastRefresh = 0;
+            if (snapCount > 0 && millis() - lastRefresh > 100) {
+                lastRefresh = millis();
+                mp_snap_index(snapIds[snapCurrentIdx]);
+            }
         } else {
-            // Refresh matrice ogni 5 secondi per le altre modalità
             static uint32_t lastRefresh = 0;
             if (millis() - lastRefresh > 5000) {
                 lastRefresh = millis();
@@ -414,4 +454,34 @@ void mode_loop() {
             }
         }
     }
+}
+
+void load_snap_list() {
+    if (!toolboxReachable()) return;
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    HTTPClient http;
+    String url = "http://" + String(settings.masterHost) + "/api/snapshots";
+    http.begin(url);
+    http.setTimeout(2000);
+    int code = http.GET();
+
+    if (code == 200) {
+        String body = http.getString();
+        StaticJsonDocument<1024> doc;
+        if (deserializeJson(doc, body) == DeserializationError::Ok) {
+            JsonArray arr = doc.as<JsonArray>();
+            snapCount = 0;
+            for (JsonObject s : arr) {
+                if (snapCount >= 50) break;
+                snapIds[snapCount] = s["id"] | 0;
+                strlcpy(snapNames[snapCount], s["name"] | "", 32);
+                snapCount++;
+            }
+            snapCurrentIdx = 0;
+            snapLoaded = true;
+            Serial.printf("[SNAP] Caricati %d snap\n", snapCount);
+        }
+    }
+    http.end();
 }

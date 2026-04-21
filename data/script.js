@@ -686,8 +686,8 @@ function applyTallyData(data) {
     const el  = document.getElementById('tv-' + key);
     const def = TALLY_PARAM_DEFS[key];
     if (!el || !def) return;
-    const rawVal = data[key === 'scene' ? 'sceneActive' : key === 'artnet' ? 'artnetConfirmed' : key === 'refresh' ? 'refreshRate' : key];
-    el.innerText  = def.format(rawVal);
+    const rawVal = data[key];
+    el.innerText   = def.format(rawVal);
     el.style.color = def.ok(rawVal) ? 'var(--accent)' : '#888';
   });
 }
@@ -941,6 +941,8 @@ function persistConfig() {
     masterName:  STATE.masterName,
     brightness:  STATE.brightness,
     tallyConfig: STATE.tallyConfig,
+    snapFade:    STATE.snapFade || 0,
+
   };
   fetch('/api/config', {
     method:  'POST',
@@ -965,6 +967,8 @@ function loadConfig() {
         const hi = document.getElementById('hostname-input');
         if (hi) { hi.value = data.hostname; validateHostname(hi); }
       }
+      if (data.snapFade !== undefined) STATE.snapFade = data.snapFade;
+      
       applyMode(STATE.mode);
       loadTallyConfigUI();
       loadCurrentCueList();
@@ -991,4 +995,11 @@ function rebootAtom() {
     fetch('/restart').catch(() => {});
     setTimeout(() => location.reload(), 5000);
   }
+}
+
+function saveSnapConfig() {
+    const fade = parseFloat(document.getElementById('snap-fade')?.value) || 0;
+    STATE.snapFade = fade;
+    persistConfig();
+    alert('Config Snap salvata.');
 }
