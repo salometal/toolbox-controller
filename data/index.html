@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ATOM Companion</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header id="main-header">
+    <div class="header-main-row">
+        <div class="logo">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <circle cx="12" cy="12" r="3"/>
+                <circle cx="12" cy="12" r="8"/>
+                <line x1="12" y1="2" x2="12" y2="4"/>
+                <line x1="12" y1="20" x2="12" y2="22"/>
+                <line x1="2" y1="12" x2="4" y2="12"/>
+                <line x1="20" y1="12" x2="22" y2="12"/>
+            </svg>
+            <span>ATOM<span style="color:var(--text); font-weight:300;">COMPANION</span></span>
+        </div>
+        <div onclick="toggleHeader()" style="cursor:pointer; color:var(--atom-primary);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="4" height="4" rx="1"/>
+                <rect x="10" y="3" width="4" height="4" rx="1"/>
+                <rect x="17" y="3" width="4" height="4" rx="1"/>
+                <rect x="3" y="10" width="4" height="4" rx="1"/>
+                <rect x="10" y="10" width="4" height="4" rx="1"/>
+                <rect x="17" y="10" width="4" height="4" rx="1"/>
+                <rect x="3" y="17" width="4" height="4" rx="1"/>
+                <rect x="10" y="17" width="4" height="4" rx="1"/>
+                <rect x="17" y="17" width="4" height="4" rx="1"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="status-group">
+        <div id="wifi-badge" class="status-badge">WIFI: --</div>
+        <div id="mode-badge" class="status-badge">MODE: --</div>
+        <div id="master-badge" class="status-badge">MASTER: --</div>
+    </div>
+
+    <!-- Pannello espandibile -->
+    <div class="header-extra-panel">
+        <div class="extra-grid">
+            <div class="extra-col">
+                <h3 class="extra-title">UTILITY</h3>
+                <button class="btn-extra btn-ident" onclick="identifyAtom()">🔦 IDENTIFY</button>
+                <button class="btn-extra btn-reboot" onclick="rebootAtom()">🔄 RIAVVIA</button>
+            </div>
+            <div class="extra-col">
+                <h3 class="extra-title">SISTEMA</h3>
+                <div class="stat-line">IP: <span id="val-ip">--</span></div>
+                <div class="stat-line">UP: <span id="val-up">00:00:00</span></div>
+                <div class="stat-line">HEAP: <span id="val-heap">-- KB</span></div>
+                <div class="stat-line">MASTER: <span id="val-master">--</span></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ===== NAV ===== -->
+<nav>
+    <button id="btn-network"  class="active" onclick="showTab('pane-network')">NETWORK</button>
+    <button id="btn-live"     onclick="showTab('pane-live')">LIVE</button>
+    <button id="btn-cuelist"  onclick="showTab('pane-cuelist')">CUE LIST</button>
+    <button id="btn-setup"    onclick="showTab('pane-setup')">SETUP</button>
+</nav>
+
+<div class="main-container">
+
+    <!-- ===== NETWORK ===== -->
+    <div id="pane-network" class="card active">
+        <div class="device-setup-block">
+            <h2>Configurazione Dispositivo</h2>
+            <div class="info-row">
+                <span>Mio IP:</span>
+                <strong id="current-ip">... caricamento ...</strong>
+            </div>
+            <div class="form-group" style="margin-top:12px;">
+                <label>Indirizzo Web</label>
+                <div class="input-group-mDNS">
+                    <input type="text" id="hostname-input" placeholder="atomcompanion" maxlength="24" oninput="validateHostname(this)">
+                    <span class="addon-text">.local</span>
+                </div>
+                <span class="help-text">URL: <strong id="hostname-preview">http://atomcompanion.local</strong></span>
+            </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <h2>Configurazione Rete</h2>
+
+        <div class="form-group">
+            <label>Reti WiFi Rilevate</label>
+            <select id="wifi-dropdown" onchange="selectNetwork(this.value)" class="full-width-select">
+                <option value="">⏳ In attesa di scansione...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>SSID WiFi</label>
+            <input type="text" id="ssid-input" placeholder="Nome rete">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="pwd-input" placeholder="Password">
+        </div>
+
+        <div class="switch-container">
+            <span>Usa DHCP</span>
+            <label class="switch">
+                <input type="checkbox" id="dhcp-flag" onchange="toggleIPFields()">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div id="static-fields">
+            <div class="form-group">
+                <label>IP Statico</label>
+                <input type="text" id="static-ip" placeholder="192.168.1.51" value="192.168.1.51">
+            </div>
+            <div class="form-group">
+                <label>Gateway</label>
+                <input type="text" id="static-gw" placeholder="192.168.1.1" value="192.168.1.1">
+            </div>
+            <div class="form-group">
+                <label>Subnet Mask</label>
+                <input type="text" id="static-sn" placeholder="255.255.255.0" value="255.255.255.0">
+            </div>
+        </div>
+
+        <button class="btn-submit" onclick="saveNetwork()">SALVA E RIAVVIA</button>
+        <button onclick="if(confirm('Reset completo?')) location.href='/factoryreset'"
+                class="btn-submit" style="background:var(--danger); margin-top:10px;">FACTORY RESET</button>
+    </div>
+
+
+    <!-- ===== LIVE ===== -->
+    <div id="pane-live" class="card">
+
+        <!-- Indicatore modalità attiva -->
+        <div class="mode-display">
+            <div class="mode-icon" id="live-mode-icon">●</div>
+            <div class="mode-info">
+                <div class="mode-label" id="live-mode-label">NESSUNA MODALITÀ</div>
+                <div class="mode-sub" id="live-mode-sub">Configura una modalità nel SETUP</div>
+            </div>
+            <div class="master-pill" id="live-master-pill">--</div>
+        </div>
+
+        <!-- TALLY CUE LIST -->
+        <div id="ctx-cuelist" class="ctx-panel" style="display:none;">
+            <div class="cl-selector-row">
+                <select id="live-cl-select" class="cl-select" onchange="loadCueListByIndex(this.value)">
+                    <option value="">-- seleziona lista --</option>
+                </select>
+            </div>
+            <div class="tally-cue-block">
+                <div class="tally-cue-row active-row">
+                    <div class="tally-cue-num" id="tally-cue-num">--</div>
+                    <div class="tally-cue-body">
+                        <div class="tally-cue-name" id="tally-cue-name">--</div>
+                        <div class="tally-cue-meta" id="tally-cue-meta">--</div>
+                    </div>
+                    <div class="tally-cue-badge" id="tally-cue-badge">ATTIVA</div>
+                </div>
+                <div class="tally-cue-row next-row">
+                    <div class="tally-cue-num" id="tally-next-num">--</div>
+                    <div class="tally-cue-body">
+                        <div class="tally-cue-name" id="tally-next-name">--</div>
+                        <div class="tally-cue-meta" id="tally-next-meta">--</div>
+                    </div>
+                    <div class="tally-cue-badge next-badge">NEXT</div>
+                </div>
+            </div>
+            <!-- AutoGo bar -->
+            <div id="autogo-bar-wrap" style="display:none;">
+                <div class="autogo-label">AUTO GO IN <span id="autogo-countdown">0</span>s</div>
+                <div class="autogo-track"><div class="autogo-fill" id="autogo-fill"></div></div>
+            </div>
+            <div class="cue-counter-row">
+                <button class="btn-nav" onclick="cuePrev()">◀ PREV</button>
+                <span id="cue-counter" class="cue-counter">0 / 0</span>
+                <button class="btn-nav" onclick="cueNext()">NEXT ▶</button>
+            </div>
+        </div>
+
+        <!-- TALLY BLACKOUT -->
+        <div id="ctx-blackout" class="ctx-panel" style="display:none;">
+            <div class="blackout-status">
+                <div class="bo-indicator" id="bo-indicator">OFF</div>
+                <div class="bo-label">BLACKOUT MASTER</div>
+            </div>
+            <div class="tally-grid">
+                <div class="tally-row"><span class="tally-label">TOOLBOX</span><span class="tally-val" id="bo-toolbox-state">--</span></div>
+                <div class="tally-row"><span class="tally-label">MODALITÀ</span><span class="tally-val" id="bo-toolbox-mode">--</span></div>
+            </div>
+        </div>
+
+        <!-- TALLY MONITOR -->
+        <div id="ctx-tally" class="ctx-panel" style="display:none;">
+            <div class="tally-grid" id="tally-params-grid">
+                <!-- popolato da JS in base alla config -->
+            </div>
+            <div class="info-text" style="text-align:center; margin-top:10px; font-size:0.7rem;">
+                Aggiornamento ogni <span id="tally-interval-display">5</span>s
+            </div>
+        </div>
+
+        <!-- TALLY SNAP RECALL -->
+        <div id="ctx-snaprecall" class="ctx-panel" style="display:none;">
+            <div class="tally-cue-block">
+                <div class="tally-cue-row" style="opacity:0.5;">
+                    <div class="tally-cue-num" id="snap-prev-num">--</div>
+                    <div class="tally-cue-body">
+                        <div class="tally-cue-name" id="snap-prev-name">--</div>
+                    </div>
+                    <div class="tally-cue-badge" style="background:rgba(255,255,255,0.05); color:#555;">PREC</div>
+                </div>
+                <div class="tally-cue-row active-row">
+                    <div class="tally-cue-num" id="snap-curr-num">--</div>
+                    <div class="tally-cue-body">
+                        <div class="tally-cue-name" id="snap-curr-name">--</div>
+                        <div class="tally-cue-meta">fade: dal Toolbox</div>
+                    </div>
+                    <div class="tally-cue-badge" id="snap-curr-badge">ATTIVA</div>
+                </div>
+                <div class="tally-cue-row next-row">
+                    <div class="tally-cue-num" id="snap-next-num">--</div>
+                    <div class="tally-cue-body">
+                        <div class="tally-cue-name" id="snap-next-name">--</div>
+                    </div>
+                    <div class="tally-cue-badge next-badge">NEXT</div>
+                </div>
+            </div>
+            <div class="cue-counter-row">
+                <button class="btn-nav" onclick="snapPrev()">◀ PREV</button>
+                <span id="snap-counter" class="cue-counter">0 / 0</span>
+                <button class="btn-nav" onclick="snapNext()">NEXT ▶</button>
+            </div>
+        </div>
+
+        <!-- TALLY OVERRIDE -->
+        <div id="ctx-override" class="ctx-panel" style="display:none;">
+            <div class="override-status">
+                <div class="override-icon">📸</div>
+                <div class="override-label">SCENE CAPTURE</div>
+                <div class="override-sub">Long press sul tasto fisico per salvare</div>
+            </div>
+            <div class="override-log" id="override-log">
+                <div class="log-empty">Nessun salvataggio in questa sessione</div>
+            </div>
+        </div>
+
+    </div><!-- /pane-live -->
+
+
+    <!-- ===== CUE LIST ===== -->
+    <div id="pane-cuelist" class="card">
+
+        <div class="cl-header">
+            <select id="cl-list-select" class="cl-select" onchange="switchCueList(this.value)">
+                <option value="">-- seleziona lista --</option>
+            </select>
+            <div class="cl-header-btns">
+                <button class="btn-icon" onclick="newCueList()" title="Nuova lista">＋</button>
+                <button class="btn-icon" onclick="renameCueList()" title="Rinomina">✎</button>
+                <button class="btn-icon btn-icon-danger" onclick="deleteCueList()" title="Elimina">🗑</button>
+            </div>
+        </div>
+
+        <div class="cl-toolbar">
+            <button class="btn-extra btn-list" onclick="addCue()">+ CUE</button>
+            <button class="btn-extra btn-snap" onclick="saveCueList()">💾 SALVA</button>
+            <button class="btn-extra" onclick="loadCurrentCueList()" style="border-color:#555; color:#aaa;">↺ RICARICA</button>
+        </div>
+
+        <div id="cue-list-container">
+            <div class="empty-msg" id="cue-empty">Seleziona o crea una lista per iniziare.</div>
+        </div>
+
+        <!-- Editor cue -->
+        <div id="cue-editor" class="cue-editor-panel" style="display:none;">
+            <div class="cue-editor-title">
+                <span id="editor-title-label">MODIFICA CUE</span>
+                <button class="btn-icon btn-icon-danger" onclick="cancelCueEdit()">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Nome cue</label>
+                <input type="text" id="edit-cue-label" placeholder="es. Apertura">
+            </div>
+            <div class="form-group">
+                <label>Snapshot Toolbox</label>
+                <select id="edit-cue-snap">
+                    <option value="">-- nessuno --</option>
+                </select>
+            </div>
+            <div class="editor-row">
+                <div class="form-group" style="flex:1;">
+                    <label>Fade (s)</label>
+                    <input type="number" id="edit-cue-fade" value="0" min="0" max="60" step="0.5">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Colore</label>
+                    <div class="color-picker-row">
+                        <input type="color" id="edit-cue-color" value="#7c3aed" oninput="updateColorPreview()">
+                        <span id="edit-cue-color-preview" class="color-preview" style="background:#7c3aed;"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Avanzamento</label>
+                <div class="go-mode-selector">
+                    <div class="go-mode-opt selected" data-go="manual" onclick="selectGoMode('manual')">
+                        <div class="go-mode-icon">👆</div>
+                        <div class="go-mode-label">MANUALE</div>
+                    </div>
+                    <div class="go-mode-opt" data-go="auto" onclick="selectGoMode('auto')">
+                        <div class="go-mode-icon">⏱</div>
+                        <div class="go-mode-label">AUTO GO</div>
+                    </div>
+                </div>
+            </div>
+            <div id="autogo-delay-group" class="form-group" style="display:none;">
+                <label>Durata prima del GO automatico (s)</label>
+                <input type="number" id="edit-cue-autogo" value="5" min="0.5" max="300" step="0.5">
+            </div>
+            <div class="editor-actions">
+                <button class="btn-submit" onclick="saveCueEdit()">SALVA</button>
+                <button class="btn-submit" onclick="deleteCueItem()" style="background:var(--danger);">ELIMINA</button>
+            </div>
+        </div>
+
+    </div><!-- /pane-cuelist -->
+
+
+    <!-- ===== SETUP ===== -->
+    <div id="pane-setup" class="card">
+        <h2>Setup</h2>
+
+        <!-- Griglia 2 colonne: Master + Brightness -->
+        <div class="setup-top-grid">
+            <!-- Master device -->
+            <div class="setup-col">
+                <h3 class="extra-title">MASTER DEVICE</h3>
+                <div id="master-discovery-list" class="master-list">
+                    <div class="empty-msg" style="padding:8px;">Premi SCAN</div>
+                </div>
+                <button class="btn-extra btn-list" onclick="scanToolbox()" style="margin-top:8px;">🔍 SCAN</button>
+            </div>
+
+            <!-- Brightness -->
+            <div class="setup-col">
+                <h3 class="extra-title">MATRICE LED</h3>
+                <label class="setup-label">Brightness</label>
+                <input type="range" id="brightness-slider" min="10" max="255" value="128"
+                       oninput="updateBrightness(this.value)" class="slider-range">
+                <div class="brightness-val"><span id="brightness-display">128</span> / 255</div>
+                <button class="btn-extra" onclick="saveBrightness()" style="margin-top:8px; border-color:#555; color:#aaa; font-size:0.7rem; padding:8px;">APPLICA</button>
+            </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <!-- Modalità operativa — 5 pulsanti -->
+        <h3 class="extra-title" style="margin-bottom:12px;">MODALITÀ OPERATIVA</h3>
+        <div class="mode-btn-grid" id="mode-btn-grid">
+            <button class="mode-btn" data-mode="1" onclick="selectMode(1)">
+                <span class="mode-btn-icon">📋</span>
+                <span class="mode-btn-label">CUE LIST</span>
+            </button>
+            <button class="mode-btn" data-mode="2" onclick="selectMode(2)">
+                <span class="mode-btn-icon">⬛</span>
+                <span class="mode-btn-label">BLACKOUT</span>
+            </button>
+            <button class="mode-btn" data-mode="3" onclick="selectMode(3)">
+                <span class="mode-btn-icon">👁</span>
+                <span class="mode-btn-label">TALLY</span>
+            </button>
+            <button class="mode-btn" data-mode="4" onclick="selectMode(4)">
+                <span class="mode-btn-icon">🎬</span>
+                <span class="mode-btn-label">SNAP</span>
+            </button>
+            <button class="mode-btn" data-mode="5" onclick="selectMode(5)">
+                <span class="mode-btn-icon">📸</span>
+                <span class="mode-btn-label">OVERRIDE</span>
+            </button>
+        </div>
+        <button class="btn-submit" onclick="saveMode()" style="margin-top:12px;">APPLICA MODALITÀ</button>
+
+        <hr class="section-divider">
+
+        <!-- ACCORDION: Tally Config -->
+        <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion('acc-tally')">
+                <span>👁 TALLY CONFIG</span>
+                <span class="accordion-arrow" id="arr-acc-tally">▶</span>
+            </div>
+            <div class="accordion-body" id="acc-tally" style="display:none;">
+                <h3 class="extra-title" style="margin-bottom:10px;">PARAMETRI — ordine e visibilità</h3>
+                <p class="info-text" style="margin-bottom:10px;">Usa ▲▼ per cambiare l'ordine. I parametri attivi (✓) vengono mostrati nel LIVE e ciclati sulla matrice.</p>
+                <!-- Lista ordinabile generata da JS -->
+                <div id="tally-param-list-editor"></div>
+
+                <hr class="section-divider" style="margin:14px 0;">
+
+                <div class="switch-container">
+                    <span>Autoplay matrice</span>
+                    <label class="switch">
+                        <input type="checkbox" id="tally-autoplay" onchange="toggleAutoplay()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div id="tally-interval-group" class="form-group" style="display:none; margin-top:10px;">
+                    <label>Intervallo rotazione (s)</label>
+                    <input type="number" id="tally-interval" value="5" min="1" max="30" step="1">
+                </div>
+
+                <button class="btn-submit" onclick="saveTallyConfig()" style="margin-top:12px;">SALVA CONFIG TALLY</button>
+            </div>
+        </div>
+
+        <!-- ACCORDION: CueList Config (placeholder) -->
+        <div class="accordion">
+            <div class="accordion-header accordion-disabled" onclick="toggleAccordion('acc-cuelist')">
+                <span>📋 CUE LIST CONFIG</span>
+                <span class="accordion-arrow" id="arr-acc-cuelist">▶</span>
+            </div>
+            <div class="accordion-body" id="acc-cuelist" style="display:none;">
+                <div class="empty-msg">Nessun parametro configurabile per ora.</div>
+            </div>
+        </div>
+
+        <!-- ACCORDION: Snap Recall Config (placeholder) -->
+        <div class="accordion">
+            <div class="accordion-header accordion-disabled" onclick="toggleAccordion('acc-snap')">
+                <span>🎬 SNAP RECALL CONFIG</span>
+                <span class="accordion-arrow" id="arr-acc-snap">▶</span>
+            </div>
+            <div class="accordion-body" id="acc-snap" style="display:none;">
+                <div class="empty-msg">Nessun parametro configurabile per ora.</div>
+            </div>
+        </div>
+
+        <!-- ACCORDION: Blackout Config (placeholder) -->
+        <div class="accordion">
+            <div class="accordion-header accordion-disabled" onclick="toggleAccordion('acc-blackout')">
+                <span>⬛ BLACKOUT CONFIG</span>
+                <span class="accordion-arrow" id="arr-acc-blackout">▶</span>
+            </div>
+            <div class="accordion-body" id="acc-blackout" style="display:none;">
+                <div class="empty-msg">Nessun parametro configurabile per ora.</div>
+            </div>
+        </div>
+
+    </div><!-- /pane-setup -->
+
+</div><!-- /main-container -->
+
+<script src="script.js"></script>
+</body>
+</html>
